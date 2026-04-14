@@ -120,18 +120,20 @@ function prosesCSV() {
     reader.onload = function(e) {
         const rows = e.target.result.split("\n");
 
-        let t=0,d=0,j=0,l=0,count=0;
+       for (let i = 1; i < rows.length; i++) {
+    let c = rows[i].includes(";") 
+        ? rows[i].split(";") 
+        : rows[i].split(",");
 
-        for (let i=1;i<rows.length;i++){
-            let c = rows[i].split(",");
-            if(c.length<4) continue;
+    if (c.length < 4) continue;
 
-            t+=parseFloat(c[0])||0;
-            d+=parseFloat(c[1])||0;
-            j+=parseFloat(c[2])||0;
-            l+=parseFloat(c[3])||0;
-            count++;
-        }
+    t += parseFloat(c[0]) || 0;
+    d += parseFloat(c[1]) || 0;
+    j += parseFloat(c[2]) || 0;
+    l += parseFloat(c[3]) || 0;
+
+    count++;
+}
 
         let avgT=t/count, avgD=d/count, avgJ=j/count, avgL=l/count;
 
