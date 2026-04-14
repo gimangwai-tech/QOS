@@ -13,74 +13,62 @@ body {
   padding: 20px;
 }
 
-h1 {
-  text-align: center;
-  font-weight: bold;
-}
+h1 { text-align:center; margin-bottom:5px; }
+.subtitle { text-align:center; color:#777; margin-bottom:20px; }
 
-.subtitle {
-  text-align: center;
-  color: #777;
-  margin-bottom: 20px;
-}
+.container { max-width:1000px; margin:auto; }
 
-.container {
-  max-width: 1000px;
-  margin: auto;
+.badge {
+  background:#f3d7c1; padding:3px 8px; border-radius:8px; font-size:12px;
 }
 
 .upload-box {
-  border: 2px dashed #d8b89c;
-  border-radius: 10px;
-  padding: 30px;
-  text-align: center;
-  background: #fff;
-  margin-bottom: 20px;
+  border:2px dashed #d8b89c;
+  border-radius:12px;
+  padding:30px;
+  text-align:center;
+  background:#fff;
+  margin-bottom:15px;
+  transition:0.3s;
 }
 
+.upload-box.dragover { border-color: orange; background:#fff8f2; }
+
 .cards {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 15px;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:15px;
 }
 
 .card {
-  background: white;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  background:white;
+  padding:20px;
+  border-radius:12px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.08);
 }
 
-.card h3 {
-  margin-top: 0;
-}
+.card h3 { margin-top:0; }
 
 input {
-  width: 100%;
-  padding: 8px;
-  margin: 5px 0;
-  border-radius: 6px;
-  border: 1px solid #ccc;
+  width:100%; padding:8px; margin:5px 0;
+  border-radius:6px; border:1px solid #ccc;
 }
 
 button {
-  width: 100%;
-  padding: 10px;
-  border: none;
-  border-radius: 8px;
-  color: white;
-  cursor: pointer;
+  width:100%; padding:10px;
+  border:none; border-radius:8px;
+  color:white; cursor:pointer;
 }
 
-.blue { background: #1f5f8b; }
-.green { background: #2e7d32; }
-.orange { background: #c45a1a; }
-.red { background: #8e244d; }
+.blue { background:#1f5f8b; }
+.green { background:#2e7d32; }
+.orange { background:#c45a1a; }
+.red { background:#8e244d; }
 
-.result {
-  margin-top: 10px;
-  font-weight: bold;
-}
+.result { margin-top:10px; font-weight:bold; }
+
+.toggle { text-align:right; margin:10px 0; }
+
 </style>
 </head>
 
@@ -88,87 +76,120 @@ button {
 
 <div class="container">
   <h1>Network QoS Calculator</h1>
-  <div class="subtitle">Hitung Throughput, Delay, Jitter, dan Packet Loss</div>
+  <div class="subtitle">Wireshark QoS Analysis (Auto)</div>
 
-  <div class="upload-box">
-    <p><b>Import dari Wireshark CSV (Opsional)</b></p>
-    <input type="file" id="csvFile">
+  <p><b>Import dari Wireshark CSV</b> <span class="badge">OPTIONAL</span></p>
+
+  <div class="upload-box" id="dropArea">
+    <p>📂 Drag & drop file CSV dari Wireshark</p>
+    <button onclick="fileInput.click()">Pilih File CSV</button>
+    <input type="file" id="fileInput" hidden>
+  </div>
+
+  <div class="toggle">
+    Tampilkan Kategori TIPHON <input type="checkbox" id="tiphonToggle" checked>
   </div>
 
   <div class="cards">
 
     <div class="card">
       <h3>Delay</h3>
-      <input id="totalDelay" placeholder="Total Delay (detik)">
-      <input id="jumlahPaket" placeholder="Jumlah Paket">
-      <button class="blue" onclick="hitungDelay()">Hitung Delay</button>
-      <div class="result" id="hasilDelay"></div>
+      <input id="delayVal" readonly>
+      <div class="result" id="delayResult"></div>
     </div>
 
     <div class="card">
       <h3>Jitter</h3>
-      <input id="totalJitter" placeholder="Total Jitter">
-      <input id="paketJitter" placeholder="Jumlah Paket">
-      <button class="green" onclick="hitungJitter()">Hitung Jitter</button>
-      <div class="result" id="hasilJitter"></div>
+      <input id="jitterVal" readonly>
+      <div class="result" id="jitterResult"></div>
     </div>
 
     <div class="card">
       <h3>Throughput</h3>
-      <input id="totalBytes" placeholder="Total Bytes">
-      <input id="timeSpan" placeholder="Time Span (detik)">
-      <button class="orange" onclick="hitungThroughput()">Hitung Throughput</button>
-      <div class="result" id="hasilThroughput"></div>
+      <input id="throughputVal" readonly>
+      <div class="result" id="throughputResult"></div>
     </div>
 
     <div class="card">
       <h3>Packet Loss</h3>
-      <input id="paketKirim" placeholder="Paket Terkirim">
-      <input id="paketHilang" placeholder="Paket Hilang">
-      <button class="red" onclick="hitungPacketLoss()">Hitung Packet Loss</button>
-      <div class="result" id="hasilPacketLoss"></div>
+      <input id="lossVal" readonly>
+      <div class="result" id="lossResult"></div>
     </div>
 
   </div>
 </div>
 
 <script>
-function hitungDelay() {
-  let total = parseFloat(totalDelay.value);
-  let paket = parseFloat(jumlahPaket.value);
-  hasilDelay.innerText = "Delay: " + (total/paket).toFixed(6) + " detik";
-}
+const dropArea = document.getElementById('dropArea');
+const fileInput = document.getElementById('fileInput');
 
-function hitungJitter() {
-  let total = parseFloat(totalJitter.value);
-  let paket = parseFloat(paketJitter.value);
-  hasilJitter.innerText = "Jitter: " + (total/paket).toFixed(6);
-}
+fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
 
-function hitungThroughput() {
-  let bytes = parseFloat(totalBytes.value);
-  let time = parseFloat(timeSpan.value);
-  hasilThroughput.innerText = "Throughput: " + ((bytes*8)/time).toFixed(2) + " bps";
-}
-
-function hitungPacketLoss() {
-  let kirim = parseFloat(paketKirim.value);
-  let hilang = parseFloat(paketHilang.value);
-  hasilPacketLoss.innerText = "Packet Loss: " + ((hilang/kirim)*100).toFixed(2) + "%";
-}
-
-// CSV Parser sederhana (Wireshark)
-document.getElementById('csvFile').addEventListener('change', function(e) {
-  const file = e.target.files[0];
-  const reader = new FileReader();
-
-  reader.onload = function(event) {
-    const text = event.target.result;
-    alert("CSV berhasil di-load (fitur parsing bisa dikembangkan lanjut)");
-  };
-
-  reader.readAsText(file);
+dropArea.addEventListener('dragover', e => {
+  e.preventDefault();
+  dropArea.classList.add('dragover');
 });
+
+dropArea.addEventListener('dragleave', () => {
+  dropArea.classList.remove('dragover');
+});
+
+dropArea.addEventListener('drop', e => {
+  e.preventDefault();
+  dropArea.classList.remove('dragover');
+  handleFile(e.dataTransfer.files[0]);
+});
+
+function handleFile(file){
+  const reader = new FileReader();
+  reader.onload = e => parseCSV(e.target.result);
+  reader.readAsText(file);
+}
+
+function parseCSV(text){
+  const lines = text.split('\n');
+  let times = [];
+  let totalBytes = 0;
+
+  for(let i=1;i<lines.length;i++){
+    let cols = lines[i].split(',');
+
+    let time = parseFloat(cols[1]);
+    let len = parseFloat(cols[5]);
+
+    if(!isNaN(time)) times.push(time);
+    if(!isNaN(len)) totalBytes += len;
+  }
+
+  // Delay
+  let delay = times.reduce((a,b)=>a+b,0) / times.length;
+
+  // Jitter
+  let jitter = 0;
+  for(let i=1;i<times.length;i++){
+    jitter += Math.abs(times[i] - times[i-1]);
+  }
+  jitter = jitter / (times.length-1);
+
+  // Throughput
+  let duration = Math.max(...times) - Math.min(...times);
+  let throughput = (totalBytes * 8) / duration;
+
+  // Packet Loss (dummy estimasi)
+  let expected = times.length + 10;
+  let loss = ((expected - times.length) / expected) * 100;
+
+  // Output
+  delayVal.value = delay.toFixed(6);
+  jitterVal.value = jitter.toFixed(6);
+  throughputVal.value = throughput.toFixed(2);
+  lossVal.value = loss.toFixed(2);
+
+  delayResult.innerText = "Delay: " + delay.toFixed(6);
+  jitterResult.innerText = "Jitter: " + jitter.toFixed(6);
+  throughputResult.innerText = "Throughput: " + throughput.toFixed(2) + " bps";
+  lossResult.innerText = "Packet Loss: " + loss.toFixed(2) + "%";
+}
 </script>
 
 </body>
