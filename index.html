@@ -2,22 +2,24 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<title>Perhitungan QoS</title>
+<title>Analisis QoS (TIPHON)</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 body {
-    font-family: Arial, sans-serif;
-    background: linear-gradient(135deg, #4facfe, #00f2fe);
+    font-family: Arial;
+    background: linear-gradient(135deg, #667eea, #764ba2);
     color: #333;
     text-align: center;
-    padding: 50px;
+    padding: 40px;
 }
 
 .container {
     background: white;
     padding: 30px;
     border-radius: 15px;
-    width: 400px;
+    width: 500px;
     margin: auto;
     box-shadow: 0 10px 25px rgba(0,0,0,0.2);
 }
@@ -26,12 +28,8 @@ h1 {
     margin-bottom: 10px;
 }
 
-input[type="file"] {
-    margin: 20px 0;
-}
-
 button {
-    background: #4facfe;
+    background: #667eea;
     color: white;
     border: none;
     padding: 10px 20px;
@@ -40,85 +38,141 @@ button {
 }
 
 button:hover {
-    background: #007bff;
+    background: #5a67d8;
 }
 
 #hasil {
     margin-top: 20px;
-    font-size: 18px;
     font-weight: bold;
 }
-</style>
 
+canvas {
+    margin-top: 30px;
+}
+</style>
 </head>
+
 <body>
 
 <div class="container">
-    <h1>📊 Perhitungan QoS</h1>
-    <p>Upload file CSV untuk menghitung QoS</p>
+    <h1>📊 Analisis QoS (TIPHON)</h1>
+    <p>Upload file CSV untuk analisis jaringan</p>
 
-    <input type="file" id="fileInput" accept=".csv">
-    <br>
-    <button onclick="prosesCSV()">Hitung QoS</button>
+    <input type="file" id="fileInput" accept=".csv"><br><br>
+    <button onclick="prosesCSV()">Analisis</button>
 
     <div id="hasil"></div>
+
+    <canvas id="chartQoS"></canvas>
+
+    <div id="kesimpulan" style="margin-top:20px;"></div>
 </div>
 
 <script>
+let chart;
+
+function warnaKategori(k) {
+    if (k === "Sangat Bagus" || k === "Bagus") return "green";
+    if (k === "Sedang") return "orange";
+    return "red";
+}
+
+function kategoriDelay(d) {
+    if (d < 150) return "Sangat Bagus";
+    else if (d < 300) return "Bagus";
+    else if (d < 450) return "Sedang";
+    else return "Buruk";
+}
+
+function kategoriJitter(j) {
+    if (j === 0) return "Sangat Bagus";
+    else if (j <= 75) return "Bagus";
+    else if (j <= 125) return "Sedang";
+    else return "Buruk";
+}
+
+function kategoriLoss(l) {
+    if (l === 0) return "Sangat Bagus";
+    else if (l <= 3) return "Bagus";
+    else if (l <= 15) return "Sedang";
+    else return "Buruk";
+}
+
+function kategoriThroughput(t) {
+    if (t > 75) return "Bagus";
+    else if (t >= 50) return "Sedang";
+    else return "Buruk";
+}
+
+function skorKategori(k) {
+    if (k === "Sangat Bagus") return 4;
+    if (k === "Bagus") return 3;
+    if (k === "Sedang") return 2;
+    return 1;
+}
+
 function prosesCSV() {
     const file = document.getElementById("fileInput").files[0];
-
-    if (!file) {
-        alert("Upload file CSV dulu!");
-        return;
-    }
+    if (!file) return alert("Upload file CSV dulu!");
 
     const reader = new FileReader();
 
     reader.onload = function(e) {
-        const text = e.target.result;
-        const rows = text.split("\n");
+        const rows = e.target.result.split("\n");
 
-        let totalThroughput = 0;
-        let totalDelay = 0;
-        let totalJitter = 0;
-        let totalLoss = 0;
-        let count = 0;
+        let t=0,d=0,j=0,l=0,count=0;
 
-        // asumsi CSV: throughput,delay,jitter,packetloss
-        for (let i = 1; i < rows.length; i++) {
-            let cols = rows[i].split(",");
+        for (let i=1;i<rows.length;i++){
+            let c = rows[i].split(",");
+            if(c.length<4) continue;
 
-            if (cols.length < 4) continue;
-
-            totalThroughput += parseFloat(cols[0]) || 0;
-            totalDelay += parseFloat(cols[1]) || 0;
-            totalJitter += parseFloat(cols[2]) || 0;
-            totalLoss += parseFloat(cols[3]) || 0;
-
+            t+=parseFloat(c[0])||0;
+            d+=parseFloat(c[1])||0;
+            j+=parseFloat(c[2])||0;
+            l+=parseFloat(c[3])||0;
             count++;
         }
 
-        if (count === 0) {
-            document.getElementById("hasil").innerHTML = "Data tidak valid!";
-            return;
-        }
+        let avgT=t/count, avgD=d/count, avgJ=j/count, avgL=l/count;
 
-        let avgT = totalThroughput / count;
-        let avgD = totalDelay / count;
-        let avgJ = totalJitter / count;
-        let avgL = totalLoss / count;
+        let kT=kategoriThroughput(avgT);
+        let kD=kategoriDelay(avgD);
+        let kJ=kategoriJitter(avgJ);
+        let kL=kategoriLoss(avgL);
 
-        let qos = avgT - (avgD + avgJ + avgL);
-
+        // tampil hasil
         document.getElementById("hasil").innerHTML = `
-            📈 Hasil QoS:<br><br>
-            Throughput: ${avgT.toFixed(2)} Mbps <br>
-            Delay: ${avgD.toFixed(2)} ms <br>
-            Jitter: ${avgJ.toFixed(2)} ms <br>
-            Packet Loss: ${avgL.toFixed(2)} % <br><br>
-            ⭐ Nilai QoS: ${qos.toFixed(2)}
+        Throughput: ${avgT.toFixed(2)} Mbps (<span style="color:${warnaKategori(kT)}">${kT}</span>)<br>
+        Delay: ${avgD.toFixed(2)} ms (<span style="color:${warnaKategori(kD)}">${kD}</span>)<br>
+        Jitter: ${avgJ.toFixed(2)} ms (<span style="color:${warnaKategori(kJ)}">${kJ}</span>)<br>
+        Packet Loss: ${avgL.toFixed(2)}% (<span style="color:${warnaKategori(kL)}">${kL}</span>)
         `;
+
+        // grafik
+        if(chart) chart.destroy();
+
+        chart = new Chart(document.getElementById("chartQoS"), {
+            type: "bar",
+            data: {
+                labels: ["Throughput","Delay","Jitter","Packet Loss"],
+                datasets: [{
+                    label: "Nilai QoS",
+                    data: [avgT,avgD,avgJ,avgL]
+                }]
+            }
+        });
+
+        // kesimpulan otomatis
+        let skor = (skorKategori(kT)+skorKategori(kD)+skorKategori(kJ)+skorKategori(kL))/4;
+
+        let kesimpulan = "";
+        if (skor >= 3.5) kesimpulan = "Kualitas jaringan SANGAT BAIK dan sangat layak digunakan.";
+        else if (skor >= 3) kesimpulan = "Kualitas jaringan BAIK dan layak digunakan.";
+        else if (skor >= 2) kesimpulan = "Kualitas jaringan CUKUP, perlu perbaikan.";
+        else kesimpulan = "Kualitas jaringan BURUK dan tidak layak.";
+
+        document.getElementById("kesimpulan").innerHTML =
+        "<b>📌 Kesimpulan:</b><br>" + kesimpulan;
     };
 
     reader.readAsText(file);
