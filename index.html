@@ -1,10 +1,41 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Website QoS</title>
+    <title>Perhitungan QoS</title>
 </head>
 <body>
-    <h1>Perhitungan QoS</h1>
-    <p>Ini website saya</p>
+
+<h1>Perhitungan QoS</h1>
+
+<label>Throughput (Mbps):</label><br>
+<input type="number" id="throughput"><br><br>
+
+<label>Delay (ms):</label><br>
+<input type="number" id="delay"><br><br>
+
+<label>Jitter (ms):</label><br>
+<input type="number" id="jitter"><br><br>
+
+<label>Packet Loss (%):</label><br>
+<input type="number" id="packetloss"><br><br>
+
+<button onclick="hitungQoS()">Hitung</button>
+
+<h2 id="hasil"></h2>
+
+<script>
+function hitungQoS() {
+    let t = document.getElementById("throughput").value;
+    let d = document.getElementById("delay").value;
+    let j = document.getElementById("jitter").value;
+    let p = document.getElementById("packetloss").value;
+
+    let hasil = (t - d - j - p);
+
+    document.getElementById("hasil").innerHTML = 
+        "Nilai QoS: " + hasil;
+}
+</script>
+
 </body>
 </html>
