@@ -1,183 +1,95 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Analisis QoS (TIPHON)</title>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<style>
-body {
-    font-family: Arial;
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    color: #333;
-    text-align: center;
-    padding: 40px;
-}
-
-.container {
-    background: white;
-    padding: 30px;
-    border-radius: 15px;
-    width: 500px;
-    margin: auto;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-}
-
-h1 {
-    margin-bottom: 10px;
-}
-
-button {
-    background: #667eea;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 8px;
-    cursor: pointer;
-}
-
-button:hover {
-    background: #5a67d8;
-}
-
-#hasil {
-    margin-top: 20px;
-    font-weight: bold;
-}
-
-canvas {
-    margin-top: 30px;
-}
-</style>
+  <meta charset="UTF-8">
+  <title>Network QoS Calculator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: Arial; background:#f5f5f5; padding:20px; }
+    h1 { text-align:center; }
+    .container { max-width:900px; margin:auto; }
+    .card {
+      background:white; padding:20px; margin:10px 0;
+      border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.1);
+    }
+    input { width:100%; padding:8px; margin:5px 0; }
+    button {
+      padding:10px; width:100%; border:none; border-radius:5px;
+      background:#007bff; color:white; cursor:pointer;
+    }
+    .result { margin-top:10px; font-weight:bold; }
+  </style>
 </head>
-
 <body>
 
 <div class="container">
-    <h1>📊 Analisis QoS (TIPHON)</h1>
-    <p>Upload file CSV untuk analisis jaringan</p>
+  <h1>Network QoS Calculator</h1>
 
-    <input type="file" id="fileInput" accept=".csv"><br><br>
-    <button onclick="prosesCSV()">Analisis</button>
+  <!-- Delay -->
+  <div class="card">
+    <h3>Delay</h3>
+    <input id="totalDelay" placeholder="Total Delay (detik)">
+    <input id="jumlahPaket" placeholder="Jumlah Paket">
+    <button onclick="hitungDelay()">Hitung Delay</button>
+    <div class="result" id="hasilDelay"></div>
+  </div>
 
-    <div id="hasil"></div>
+  <!-- Jitter -->
+  <div class="card">
+    <h3>Jitter</h3>
+    <input id="totalJitter" placeholder="Total Jitter">
+    <input id="paketJitter" placeholder="Jumlah Paket">
+    <button onclick="hitungJitter()">Hitung Jitter</button>
+    <div class="result" id="hasilJitter"></div>
+  </div>
 
-    <canvas id="chartQoS"></canvas>
+  <!-- Throughput -->
+  <div class="card">
+    <h3>Throughput</h3>
+    <input id="totalBytes" placeholder="Total Bytes">
+    <input id="timeSpan" placeholder="Time Span (detik)">
+    <button onclick="hitungThroughput()">Hitung Throughput</button>
+    <div class="result" id="hasilThroughput"></div>
+  </div>
 
-    <div id="kesimpulan" style="margin-top:20px;"></div>
+  <!-- Packet Loss -->
+  <div class="card">
+    <h3>Packet Loss</h3>
+    <input id="paketKirim" placeholder="Paket Terkirim">
+    <input id="paketHilang" placeholder="Paket Hilang">
+    <button onclick="hitungPacketLoss()">Hitung Packet Loss</button>
+    <div class="result" id="hasilPacketLoss"></div>
+  </div>
+
 </div>
 
 <script>
-let chart;
-
-function warnaKategori(k) {
-    if (k === "Sangat Bagus" || k === "Bagus") return "green";
-    if (k === "Sedang") return "orange";
-    return "red";
+function hitungDelay() {
+  let total = parseFloat(document.getElementById('totalDelay').value);
+  let paket = parseFloat(document.getElementById('jumlahPaket').value);
+  let hasil = total / paket;
+  document.getElementById('hasilDelay').innerText = "Delay: " + hasil.toFixed(6) + " detik";
 }
 
-function kategoriDelay(d) {
-    if (d < 150) return "Sangat Bagus";
-    else if (d < 300) return "Bagus";
-    else if (d < 450) return "Sedang";
-    else return "Buruk";
+function hitungJitter() {
+  let total = parseFloat(document.getElementById('totalJitter').value);
+  let paket = parseFloat(document.getElementById('paketJitter').value);
+  let hasil = total / paket;
+  document.getElementById('hasilJitter').innerText = "Jitter: " + hasil.toFixed(6);
 }
 
-function kategoriJitter(j) {
-    if (j === 0) return "Sangat Bagus";
-    else if (j <= 75) return "Bagus";
-    else if (j <= 125) return "Sedang";
-    else return "Buruk";
+function hitungThroughput() {
+  let bytes = parseFloat(document.getElementById('totalBytes').value);
+  let time = parseFloat(document.getElementById('timeSpan').value);
+  let hasil = (bytes * 8) / time;
+  document.getElementById('hasilThroughput').innerText = "Throughput: " + hasil.toFixed(2) + " bps";
 }
 
-function kategoriLoss(l) {
-    if (l === 0) return "Sangat Bagus";
-    else if (l <= 3) return "Bagus";
-    else if (l <= 15) return "Sedang";
-    else return "Buruk";
-}
-
-function kategoriThroughput(t) {
-    if (t > 75) return "Bagus";
-    else if (t >= 50) return "Sedang";
-    else return "Buruk";
-}
-
-function skorKategori(k) {
-    if (k === "Sangat Bagus") return 4;
-    if (k === "Bagus") return 3;
-    if (k === "Sedang") return 2;
-    return 1;
-}
-
-function prosesCSV() {
-    const file = document.getElementById("fileInput").files[0];
-    if (!file) return alert("Upload file CSV dulu!");
-
-    const reader = new FileReader();
-
-    reader.onload = function(e) {
-        const rows = e.target.result.split("\n");
-
-       for (let i = 1; i < rows.length; i++) {
-    let c = rows[i].includes(";") 
-        ? rows[i].split(";") 
-        : rows[i].split(",");
-
-    if (c.length < 4) continue;
-
-    t += parseFloat(c[0]) || 0;
-    d += parseFloat(c[1]) || 0;
-    j += parseFloat(c[2]) || 0;
-    l += parseFloat(c[3]) || 0;
-
-    count++;
-}
-
-        let avgT=t/count, avgD=d/count, avgJ=j/count, avgL=l/count;
-
-        let kT=kategoriThroughput(avgT);
-        let kD=kategoriDelay(avgD);
-        let kJ=kategoriJitter(avgJ);
-        let kL=kategoriLoss(avgL);
-
-        // tampil hasil
-        document.getElementById("hasil").innerHTML = `
-        Throughput: ${avgT.toFixed(2)} Mbps (<span style="color:${warnaKategori(kT)}">${kT}</span>)<br>
-        Delay: ${avgD.toFixed(2)} ms (<span style="color:${warnaKategori(kD)}">${kD}</span>)<br>
-        Jitter: ${avgJ.toFixed(2)} ms (<span style="color:${warnaKategori(kJ)}">${kJ}</span>)<br>
-        Packet Loss: ${avgL.toFixed(2)}% (<span style="color:${warnaKategori(kL)}">${kL}</span>)
-        `;
-
-        // grafik
-        if(chart) chart.destroy();
-
-        chart = new Chart(document.getElementById("chartQoS"), {
-            type: "bar",
-            data: {
-                labels: ["Throughput","Delay","Jitter","Packet Loss"],
-                datasets: [{
-                    label: "Nilai QoS",
-                    data: [avgT,avgD,avgJ,avgL]
-                }]
-            }
-        });
-
-        // kesimpulan otomatis
-        let skor = (skorKategori(kT)+skorKategori(kD)+skorKategori(kJ)+skorKategori(kL))/4;
-
-        let kesimpulan = "";
-        if (skor >= 3.5) kesimpulan = "Kualitas jaringan SANGAT BAIK dan sangat layak digunakan.";
-        else if (skor >= 3) kesimpulan = "Kualitas jaringan BAIK dan layak digunakan.";
-        else if (skor >= 2) kesimpulan = "Kualitas jaringan CUKUP, perlu perbaikan.";
-        else kesimpulan = "Kualitas jaringan BURUK dan tidak layak.";
-
-        document.getElementById("kesimpulan").innerHTML =
-        "<b>📌 Kesimpulan:</b><br>" + kesimpulan;
-    };
-
-    reader.readAsText(file);
+function hitungPacketLoss() {
+  let kirim = parseFloat(document.getElementById('paketKirim').value);
+  let hilang = parseFloat(document.getElementById('paketHilang').value);
+  let hasil = (hilang / kirim) * 100;
+  document.getElementById('hasilPacketLoss').innerText = "Packet Loss: " + hasil.toFixed(2) + "%";
 }
 </script>
 
