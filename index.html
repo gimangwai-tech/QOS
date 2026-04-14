@@ -1,39 +1,127 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
-    <title>Perhitungan QoS</title>
+<meta charset="UTF-8">
+<title>Perhitungan QoS</title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg, #4facfe, #00f2fe);
+    color: #333;
+    text-align: center;
+    padding: 50px;
+}
+
+.container {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    width: 400px;
+    margin: auto;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+
+h1 {
+    margin-bottom: 10px;
+}
+
+input[type="file"] {
+    margin: 20px 0;
+}
+
+button {
+    background: #4facfe;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #007bff;
+}
+
+#hasil {
+    margin-top: 20px;
+    font-size: 18px;
+    font-weight: bold;
+}
+</style>
+
 </head>
 <body>
 
-<h1>Perhitungan QoS</h1>
+<div class="container">
+    <h1>📊 Perhitungan QoS</h1>
+    <p>Upload file CSV untuk menghitung QoS</p>
 
-<label>Throughput (Mbps):</label><br>
-<input type="number" id="throughput"><br><br>
+    <input type="file" id="fileInput" accept=".csv">
+    <br>
+    <button onclick="prosesCSV()">Hitung QoS</button>
 
-<label>Delay (ms):</label><br>
-<input type="number" id="delay"><br><br>
-
-<label>Jitter (ms):</label><br>
-<input type="number" id="jitter"><br><br>
-
-<label>Packet Loss (%):</label><br>
-<input type="number" id="packetloss"><br><br>
-
-<button onclick="hitungQoS()">Hitung</button>
-
-<h2 id="hasil"></h2>
+    <div id="hasil"></div>
+</div>
 
 <script>
-function hitungQoS() {
-    let t = document.getElementById("throughput").value;
-    let d = document.getElementById("delay").value;
-    let j = document.getElementById("jitter").value;
-    let p = document.getElementById("packetloss").value;
+function prosesCSV() {
+    const file = document.getElementById("fileInput").files[0];
 
-    let hasil = (t - d - j - p);
+    if (!file) {
+        alert("Upload file CSV dulu!");
+        return;
+    }
 
-    document.getElementById("hasil").innerHTML = 
-        "Nilai QoS: " + hasil;
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+        const text = e.target.result;
+        const rows = text.split("\n");
+
+        let totalThroughput = 0;
+        let totalDelay = 0;
+        let totalJitter = 0;
+        let totalLoss = 0;
+        let count = 0;
+
+        // asumsi CSV: throughput,delay,jitter,packetloss
+        for (let i = 1; i < rows.length; i++) {
+            let cols = rows[i].split(",");
+
+            if (cols.length < 4) continue;
+
+            totalThroughput += parseFloat(cols[0]) || 0;
+            totalDelay += parseFloat(cols[1]) || 0;
+            totalJitter += parseFloat(cols[2]) || 0;
+            totalLoss += parseFloat(cols[3]) || 0;
+
+            count++;
+        }
+
+        if (count === 0) {
+            document.getElementById("hasil").innerHTML = "Data tidak valid!";
+            return;
+        }
+
+        let avgT = totalThroughput / count;
+        let avgD = totalDelay / count;
+        let avgJ = totalJitter / count;
+        let avgL = totalLoss / count;
+
+        let qos = avgT - (avgD + avgJ + avgL);
+
+        document.getElementById("hasil").innerHTML = `
+            📈 Hasil QoS:<br><br>
+            Throughput: ${avgT.toFixed(2)} Mbps <br>
+            Delay: ${avgD.toFixed(2)} ms <br>
+            Jitter: ${avgJ.toFixed(2)} ms <br>
+            Packet Loss: ${avgL.toFixed(2)} % <br><br>
+            ⭐ Nilai QoS: ${qos.toFixed(2)}
+        `;
+    };
+
+    reader.readAsText(file);
 }
 </script>
 
